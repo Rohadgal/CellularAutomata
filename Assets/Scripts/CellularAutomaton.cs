@@ -18,13 +18,12 @@ public class CellularAutomaton : MonoBehaviour
 
     float prefabWidth;
     float prefabHeight;
+    bool canGenerateCell;
+    bool isRandomStart;
     Vector3 topLeftCorner;
 
-    bool canGenerateCell;
 
     GameObject[,] cellsArray = new GameObject[0,0];
-
-    //int[] ruleBinaryArray = new int[8];
     bool[] boolBinaryArray = new bool[8];
 
     private void Awake() {
@@ -59,17 +58,6 @@ public class CellularAutomaton : MonoBehaviour
             canGenerateCell = false;
             StopAllCoroutines();
         }
-
-        //if(cellsArray != null) {
-        //    Array.Clear(cellsArray, 0, cellsArray.Length);
-        //}
-
-        //if (cells.Count != 0) {
-        //    foreach(GameObject cell in cells) {
-        //        Destroy(cell);
-        //    }
-        //    cells.Clear();
-        //}
 
         // Check if array is empty.
         if (cellsArray.Length == 0) {
@@ -108,11 +96,14 @@ public class CellularAutomaton : MonoBehaviour
 
     public void generateRule(string input) {
         rule = Convert.ToInt32(input);
-        //Debug.Log(rule);
         convertNumToBinary(rule);
     }
 
-    public void convertNumToBinary(int num) {
+    public void randomizeStart(bool input) {
+        isRandomStart = input;
+    }
+
+    void convertNumToBinary(int num) {
         bool[] binArray = new bool[8];
         
         // Convert num to binary in boolean representation.
@@ -121,31 +112,15 @@ public class CellularAutomaton : MonoBehaviour
             binArray[i] = (num &(1 << (7 - i))) != 0;
         }
 
-        // Convert bool array to binary representation.
-        //for(int i = 0; i <binArray.Length; i++) {
-        //    if (binArray[i]) {
-        //        ruleBinaryArray[i] = 1;
-        //        continue;
-        //    }
-        //    ruleBinaryArray[i] = 0;
-        //}
-
         // Caching bool array
         for (int i = 0; i < binArray.Length; i++) {
             boolBinaryArray[i] = binArray[i];
             Debug.Log(" " + boolBinaryArray[i] + " ");
         }
-        //for (int i = 0; i < ruleBinaryArray.Length; i++) {
-        //    Debug.Log(" " + ruleBinaryArray[i] + " ");
-        //}
     }
 
     public void getWidthInput(string input) {
         gridWidth = Convert.ToInt32(input);
-        // To create a center position in grid's width.
-        //if(gridWidth % 2 == 0) {
-        //    gridWidth += 1;
-        //}
     }
 
     public void getHeightInput(string input) {
@@ -154,8 +129,7 @@ public class CellularAutomaton : MonoBehaviour
 
     IEnumerator createGridBySteps() {
         int middlePos = (int)(gridWidth * 0.5f);
-        //GameObject[] cellArray = new GameObject[ruleBinaryArray.Length];
-
+        int randomPos = UnityEngine.Random.Range(0, gridWidth);
         for (int i = 0; i < gridHeight; i++) {
             for (int j = 0; j < gridWidth; j++) {
                 if(canGenerateCell) {
@@ -164,10 +138,17 @@ public class CellularAutomaton : MonoBehaviour
                     // Create cell instance.
                     GameObject temp = Instantiate(gridElement, new Vector3((j * prefabWidth) + (topLeftCorner.x + prefabWidth), (topLeftCorner.y - prefabHeight) - (i * prefabHeight), 0), Quaternion.identity);
                     // Change color of center cell in first row.
-                    if(i == 0 && j == middlePos) {
-                        //temp.GetComponent<SpriteRenderer>().color = new Color(0, 0, 1);
-                        if(temp.GetComponent<Cell>().getColor()) {
-                            temp.GetComponent<Cell>().setCellColor(false);
+                    if (!isRandomStart) {
+                        if(i == 0 && j == middlePos) {
+                            if(temp.GetComponent<Cell>().getColor()) {
+                                temp.GetComponent<Cell>().setCellColor(false);
+                            }
+                        }
+                    } else { 
+                        if (i == 0 && j == randomPos) {
+                            if (temp.GetComponent<Cell>().getColor()) {
+                                temp.GetComponent<Cell>().setCellColor(false);
+                            }
                         }
                     }
                     cellsArray[i, j] = temp;  
@@ -257,7 +238,6 @@ public class CellularAutomaton : MonoBehaviour
             }
             _case= patternCases.five;
         }
-
 
         caseSelection:
 
