@@ -12,6 +12,8 @@ public class Cell : MonoBehaviour
         }
     }
 
+    /* Setters */
+    // Set the color of the cell depending on the bool parameter
     public void setCellColor(bool isWhite) {
         _isWhite = isWhite;
         if(_spriteRenderer != null) {
@@ -22,7 +24,7 @@ public class Cell : MonoBehaviour
            _spriteRenderer.color = Color.white;
         }
     }
-
+    /* Getters */
     public Color getCellColor() {
         return _spriteRenderer.color;
     }

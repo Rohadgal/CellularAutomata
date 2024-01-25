@@ -32,6 +32,7 @@ public class CellularAutomaton : MonoBehaviour
 
 
     private void Start() {
+        // Check if cell has been defined and check and assign it's dimension
         if(gridElement != null) {
             prefabWidth = gridElement.GetComponent<SpriteRenderer>().bounds.size.x;
             prefabHeight = gridElement.GetComponent<SpriteRenderer>().bounds.size.y;
@@ -47,19 +48,19 @@ public class CellularAutomaton : MonoBehaviour
         }
     }
 
+    // Set the position to the top-left corner of the screen
     void UpdatePosition() {
-        // Set the position to the top-left corner of the screen
         topLeftCorner = Camera.main.ScreenToWorldPoint(new Vector3(0, Screen.height, 0));
     }
 
+    // Function to prevent grids from generating on top of another when generate button is clicked many times.
     public void generateGrid() {
         if (canGenerateCell) {
-
             canGenerateCell = false;
             StopAllCoroutines();
         }
 
-        // Check if array is empty.
+        // Check if matrix array size has not been defined and set a default size if it hasn´t.
         if (cellsArray.Length == 0) {
             if(gridWidth == 0 || gridHeight == 0) {
                 gridWidth = 20;
@@ -88,17 +89,19 @@ public class CellularAutomaton : MonoBehaviour
         StartCoroutine(createGridBySteps());
     }
 
+    // Create a new matrix with the desired size
     void ResizeMatrix(int newRows, int newColumns) {
-        // Create a new matrix with the desired size
         GameObject[,] newMatrix = new GameObject[newRows, newColumns];
         cellsArray = newMatrix;
     }
+
 
     public void generateRule(string input) {
         rule = Convert.ToInt32(input);
         convertNumToBinary(rule);
     }
 
+    // This functions creates an initial position in the first row of the matrix at random
     public void randomizeStart(bool input) {
         isRandomStart = input;
     }
@@ -108,14 +111,13 @@ public class CellularAutomaton : MonoBehaviour
         
         // Convert num to binary in boolean representation.
         for(int i = 7; i >= 0; i--) {
-            // bitwise left shift operator
+            // bitwise left shift operator done with the help of Chatgpt open.ai
             binArray[i] = (num &(1 << (7 - i))) != 0;
         }
 
         // Caching bool array
         for (int i = 0; i < binArray.Length; i++) {
             boolBinaryArray[i] = binArray[i];
-            Debug.Log(" " + boolBinaryArray[i] + " ");
         }
     }
 
@@ -132,12 +134,13 @@ public class CellularAutomaton : MonoBehaviour
         int randomPos = UnityEngine.Random.Range(0, gridWidth);
         for (int i = 0; i < gridHeight; i++) {
             for (int j = 0; j < gridWidth; j++) {
+                // Check if the cell matrix is empty before creating a new one
                 if(canGenerateCell) {
                     bool[] patternSpace = new bool[3];
                     
                     // Create cell instance.
                     GameObject temp = Instantiate(gridElement, new Vector3((j * prefabWidth) + (topLeftCorner.x + prefabWidth), (topLeftCorner.y - prefabHeight) - (i * prefabHeight), 0), Quaternion.identity);
-                    // Change color of center cell in first row.
+                    // Change color of center cell in first row if random position is not selected
                     if (!isRandomStart) {
                         if(i == 0 && j == middlePos) {
                             if(temp.GetComponent<Cell>().getColor()) {
@@ -151,62 +154,62 @@ public class CellularAutomaton : MonoBehaviour
                             }
                         }
                     }
+                    // Asign cell to a position in the matrix
                     cellsArray[i, j] = temp;  
-
+                    // Begin assigning color to cells based on the cells on the row above and the rule selected only after the first row has been created
                     if(i > 0 && rule != 0) {
+                        // check the condition of the three cells on the row above the cell being revised
                         for(int k = 0; k < 3; k++) {
+                            // Always set to white the first cell of the pattern space when checking the first column
                             if (j == 0 && k==0) {
                                 patternSpace[k] = true;
-                                //Debug.Log("cell_ x: " + i + " y: " + j + " bool[" + k + "] :" + patternSpace[k]);
                                 continue;
                             }
                             if (j == 0) {
+                                // Assign color to the second or third cell of the pattern space when working with the first column
                                 patternSpace[k] = cellsArray[i - 1, k - 1].GetComponent<Cell>().getColor();
-                                //Debug.Log("cell_ x: " + i + " y: " + j + " bool[" + k + "] :" + patternSpace[k]);
-
-                                //if(k == 2) {
-                                //   cellsArray[i, j].GetComponent<Cell>().setCellColor(checkCellArrayColors(patternSpace));
-                                //}
                                 continue;
                             }
 
                             if(k == 0) {
+                                // Assign color to the first cell of the pattern space when working with the rest of cells of the matrix
                                 patternSpace[k] = cellsArray[i - 1, j - 1].GetComponent<Cell>().getColor();
                             }
 
                             if(k == 1) {
+                                // Assign color to the second cell of the pattern space when working with the rest of cells of the matrix
                                 patternSpace[k] = cellsArray[i - 1, j].GetComponent<Cell>().getColor();
                             }
 
                             if (k == 2) {
-                                if(j == cellsArray.GetLength(1) - 1) {
+                                // Always set to white the last cell of the pattern space when checking the last column
+                                if (j == cellsArray.GetLength(1) - 1) {
                                     patternSpace[k] = true;
-
-                                    //cellsArray[i, j].GetComponent<Cell>().setCellColor(checkCellArrayColors(patternSpace));
-                                    //Debug.Log("cell_ x: " + i + " y: " + j + " bool[" + k + "] :" + patternSpace[k]);
                                     continue;
                                 }
+                                // Assign color to the last cell of the pattern space
                                 patternSpace[k] = cellsArray[i - 1, j + 1].GetComponent<Cell>().getColor();
                             }
-                            //Debug.Log("cell_ x: " + i + " y: " +j + " bool[" + k + "] :" + patternSpace[k]);
                         }
                         // check pattern space for color and assign color to cell.
                         cellsArray[i,j].GetComponent<Cell>().setCellColor(!checkCellArrayColors(patternSpace));
-                        Debug.Log("Cell x: " + i + " y: " + j);
                     }
-
+                    // Clear the array that checks the condition of the three positions on top of the cell in turn.
                     Array.Clear(patternSpace,0,patternSpace.Length);
-
+                    // Create a little pause before drawing each individual cell on the matrix
                     yield return new WaitForSeconds(0.02f);
                 }
             }
         }
     }
 
+    // Asign color to cell on every row depending on rule condition
     bool checkCellArrayColors(bool[] boolSectionArray) {
         patternCases _case = new patternCases();
         bool asignedColor = false;
 
+        // Check the bools in the array of the pattern space to determine one of the eight enum cases
+        // Condition that checks the cases that start with false bool
         if (boolSectionArray[0] == false) {
             if (boolSectionArray[1] == false) {
                 if (boolSectionArray[2] == false) {
@@ -222,7 +225,7 @@ public class CellularAutomaton : MonoBehaviour
             }
             _case = patternCases.four;
         }
-
+        // Condition that checks the cases that start with true bool
         if (boolSectionArray[0] == true) {
             if (boolSectionArray[1] == true) {
                 if (boolSectionArray[2] == true) {
@@ -241,39 +244,39 @@ public class CellularAutomaton : MonoBehaviour
 
         caseSelection:
 
-        Debug.Log("case: " + _case.ToString());
+        // Asign color to cell depending con the condition of the pattern space above the cell
         switch (_case) {
             case patternCases.one: 
                 asignedColor = boolBinaryArray[0];
-                break;
+            break;
 
             case patternCases.two:
                 asignedColor = boolBinaryArray[1];
-                break;
+            break;
         
             case patternCases.three:
                 asignedColor = boolBinaryArray[2];
-                break;
+            break;
         
             case patternCases.four:
                 asignedColor = boolBinaryArray[3];
-                break;
+            break;
         
             case patternCases.five:
                 asignedColor = boolBinaryArray[4];
-                break;
+            break;
         
             case patternCases.six:
                 asignedColor = boolBinaryArray[5];
-                break;
+            break;
         
             case patternCases.seven:
                 asignedColor = boolBinaryArray[6];
-                break;
+            break;
         
             case patternCases.eight:
                 asignedColor = boolBinaryArray[7];
-                break;
+            break;
 
             default: break;
         }
