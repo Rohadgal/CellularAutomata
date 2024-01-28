@@ -19,6 +19,8 @@ public class CellularAutomaton2D : MonoBehaviour
     bool canGenerateCell;
     Vector3 topLeftCorner;
 
+    bool m_isStepped;
+
     GameObject[,] cellsArray = new GameObject[0, 0];
 
     GameObject[,] cellsArrayOne = new GameObject[0, 0];
@@ -106,6 +108,10 @@ public class CellularAutomaton2D : MonoBehaviour
         iterations = Convert.ToInt32(input);
     }
 
+    public void isStepped(bool input) {
+        m_isStepped = input;
+    }
+
     // Set the position to the top-left corner of the screen
     void UpdatePosition() {
         topLeftCorner = Camera.main.ScreenToWorldPoint(new Vector3(0, Screen.height, 0));
@@ -114,6 +120,7 @@ public class CellularAutomaton2D : MonoBehaviour
     IEnumerator createGridBySteps() {
         for(int it = 0; it <= iterations; it++) {
             // Destroy and clear cells array for the next iteration
+            yield return new WaitForSeconds(0.2f);
             if (it > 0) {
                 copyArray();
                 if (cellsArray.Length != 0) {
@@ -151,7 +158,9 @@ public class CellularAutomaton2D : MonoBehaviour
                             cellsArray[i,j] = temp;
                         }
                         // Create a little pause before drawing each individual cell on the matrix
-                        yield return new WaitForSeconds(0.02f);
+                        if (m_isStepped) {
+                            yield return new WaitForSeconds(0.02f);
+                        }
                     }
                 }
             }

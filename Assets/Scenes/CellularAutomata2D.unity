@@ -2826,9 +2826,9 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: CellularAutomaton, Assembly-CSharp
-        m_MethodName: randomizeStart
+      - m_Target: {fileID: 2061519979}
+        m_TargetAssemblyTypeName: CellularAutomaton2D, Assembly-CSharp
+        m_MethodName: isStepped
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3819,7 +3819,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'Randomize '
+  m_Text: Stepped
 --- !u!114 &3487549718619530155
 MonoBehaviour:
   m_ObjectHideFlags: 0
