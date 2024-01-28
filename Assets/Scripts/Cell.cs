@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Cell : MonoBehaviour
@@ -6,6 +7,9 @@ public class Cell : MonoBehaviour
     SpriteRenderer _spriteRenderer;
 
     private void Awake() {
+        if (_spriteRenderer == null) {
+            _spriteRenderer = new SpriteRenderer();
+        }
         _spriteRenderer = GetComponent<SpriteRenderer>();
         if(_isWhite) {
             _spriteRenderer.color = Color.white;
@@ -22,7 +26,9 @@ public class Cell : MonoBehaviour
              return;
            }
            _spriteRenderer.color = Color.white;
+            return;
         }
+        Debug.Log("Null sprite renderer");
     }
     /* Getters */
     public Color getCellColor() {
