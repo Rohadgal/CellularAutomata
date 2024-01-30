@@ -87,19 +87,19 @@ public class CellularAutomaton2D : MonoBehaviour
         cellsArray = newMatrix;
     }
 
-
+    // Assign grid width
     public void getWidthInput(string input) {
         gridWidth = Convert.ToInt32(input);
     }
-
+    // Assign grid height
     public void getHeightInput(string input) {
         gridHeight = Convert.ToInt32(input);
     }
-
+    // Assign number of similar cells for alive ones to continue living
     public void getAliveNum(string input) {
         numAlive = Convert.ToInt32(input);
     }
-
+    // Assign number of similar cells for dead ones to continue dead
     public void getDeadNum(string input) {
         numDead = Convert.ToInt32(input);
     }
@@ -148,13 +148,19 @@ public class CellularAutomaton2D : MonoBehaviour
                             int numberOfNeighbors = checkNeighbors(i, j);
                             // If the cell is alive the color returns true
                             if (cellsArrayOne[i,j].GetComponent<Cell>().getColor()) {
-                                // Check if rule is met for alive cells
-                                temp.GetComponent<Cell>().setCellColor((numberOfNeighbors >= numAlive)?true : false); 
+                                // Check if rule is met for alive cells and asign color
+                                temp.GetComponent<Cell>().setCellColor((numberOfNeighbors >= numAlive)?true : false);
                             }
                             else
                             {
+                                // Check if rule is met for dead cells and asign color
                                 temp.GetComponent<Cell>().setCellColor((numberOfNeighbors >= numDead) ? false : true);
                             }
+                            // To keep cells in a closed grid
+                            if(i == 0 || j == 0 || i == gridHeight -1|| j == gridWidth -1) {
+                                temp.GetComponent<Cell>().setCellColor(false);
+                            }
+                            // Add temp cell to the original cells array
                             cellsArray[i,j] = temp;
                         }
                         // Create a little pause before drawing each individual cell on the matrix
@@ -164,6 +170,7 @@ public class CellularAutomaton2D : MonoBehaviour
                     }
                 }
             }
+            // Clear the cells from the secondary matrix array
             if (cellsArrayOne.Length != 0) {
                 foreach (GameObject cell in cellsArrayOne) {
                     Destroy(cell);
@@ -175,12 +182,11 @@ public class CellularAutomaton2D : MonoBehaviour
 
     int checkNeighbors(int x, int y) {
         int num = 0;
-        if(x== 0 || y == 0) {
+        // Exclude the edges of the grid from the math
+        if(x== 0 || y == 0 || x == gridWidth - 1 || y == gridHeight - 1) {
             return 0;
         }
-        if(x == gridWidth - 1 || y == gridHeight - 1) {
-            return 0;
-        }
+        // Go through the neighbors of the cell and check if they are the same color as the center cell
         for(int i = -1; i <= 1; i++) {
             for(int j = -1; j <= 1; j++) {
                 if (cellsArrayOne[x + i, y + j].GetComponent<Cell>().getCellColor() == cellsArrayOne[x, y].GetComponent<Cell>().getCellColor()) {
@@ -188,17 +194,19 @@ public class CellularAutomaton2D : MonoBehaviour
                 }
             }
         }
-        return num;
+        // Minus one to ignore the center cell comparing with itself
+        return num -1;
     }
 
+    // Copy matrix array to check the condition of the next generation of cells without affecting the original matrix of cells
     void copyArray() {
         cellsArrayOne = new GameObject[cellsArray.GetLength(0), cellsArray.GetLength(1)];
         for(int i = 0; i < cellsArray.GetLength(0); i++) {
             for(int j = 0; j < cellsArray.GetLength(1); j++) {
                 cellsArrayOne[i, j] = Instantiate(gridElement);
+                // Set active to false to hide the temp gameObject from the game scene
                 cellsArrayOne[i, j].SetActive(false);
                 cellsArrayOne[i, j].GetComponent<Cell>().setCellColor(cellsArray[i,j].GetComponent<Cell>().getColor());
-                //Debug.Log("Color is white: " + cellsArrayOne[i, j].GetComponent<Cell>().getColor());
             }
         }
     }

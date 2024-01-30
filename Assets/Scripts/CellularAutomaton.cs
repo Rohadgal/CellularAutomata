@@ -101,17 +101,18 @@ public class CellularAutomaton : MonoBehaviour
         convertNumToBinary(rule);
     }
 
-    // This functions creates an initial position in the first row of the matrix at random
+    // This function creates an initial position in the first row of the matrix at random
     public void randomizeStart(bool input) {
         isRandomStart = input;
     }
 
+    // This function changes the int parameter to its 8 digit binary representation
     void convertNumToBinary(int num) {
         bool[] binArray = new bool[8];
         
         // Convert num to binary in boolean representation.
         for(int i = 7; i >= 0; i--) {
-            // bitwise left shift operator done with the help of Chatgpt open.ai
+            // bitwise left shift operator done with the help of Microsoft's documentation
             binArray[i] = (num &(1 << (7 - i))) != 0;
         }
 
@@ -197,10 +198,11 @@ public class CellularAutomaton : MonoBehaviour
                     // Clear the array that checks the condition of the three positions on top of the cell in turn.
                     Array.Clear(patternSpace,0,patternSpace.Length);
                     // Create a little pause before drawing each individual cell on the matrix
-                    yield return new WaitForSeconds(0.02f);
+                    yield return new WaitForSeconds(0.01f);
                 }
             }
         }
+       // yield return new WaitForSeconds(0f);
     }
 
     // Asign color to cell on every row depending on rule condition
