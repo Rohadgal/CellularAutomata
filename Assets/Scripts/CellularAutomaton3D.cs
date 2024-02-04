@@ -16,7 +16,7 @@ public class CellularAutomaton3D : MonoBehaviour
     int currentHeight;
     int currentDepth;
 
-    int iterations = 1;
+    int iterations = 2;
     int numAlive = 3;
     int numDead = 5;
 
@@ -164,14 +164,10 @@ public class CellularAutomaton3D : MonoBehaviour
                                 //GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
                                 int numberOfNeighbors = checkNeighbors(i, j, k);
                                 // If the cell is alive returns true
-                                Debug.Log("i: " + i + " j: " + j + " k: " + k); 
-                                Debug.Log(" value: " + cellsArrayMap[i, j, k]);
                                 if (cellsArrayMap[i, j, k]) {
-                                    Debug.Log("true");
                                     // Check if rule is met for alive cells and asign color
                                     cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numAlive) ? true : false);
                                 } else {
-                                    Debug.Log("false");
                                     // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
                                     cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= 26 - numDead) ? false : true);
                                 }
@@ -191,9 +187,9 @@ public class CellularAutomaton3D : MonoBehaviour
                     }
                 }
             }
-            if(it == 0) {
-                copyArray(it);
-            }
+            
+            copyArray(it);
+            
             hasChangedSize = false;
             // Clear the cells from the secondary matrix array
             //if (cellsArrayOne.Length != 0) {
@@ -208,21 +204,17 @@ public class CellularAutomaton3D : MonoBehaviour
         if (hasChangedSize) {
             Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
             cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
-            Debug.Log("clear");
         }
 
         //if(iterator == 0) {
         //    cellsArrayOne = cellsArrayOne = new GameObject[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
         //}
 
-        Debug.Log("x: " + cellsArrayMap.GetLength(0) + " y: " + cellsArrayMap.GetLength(1) + " z: " + cellsArrayMap.GetLength(2));
 
         for (int i = 0; i < cellsArray.GetLength(0); i++) {
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
                 for(int k = 0; k < cellsArray.GetLength(2); k++) {
                     cellsArrayMap[i, j, k] = cellsArray[i,j,k].GetComponent<CubeCell>().getIsAlive();
-                    Debug.LogWarning(cellsArrayMap[i, j, k]);
-                    Debug.Log("copying");
                 }
             }
         }
@@ -245,7 +237,6 @@ public class CellularAutomaton3D : MonoBehaviour
             }
         }
         // Minus one to ignore the center cell comparing with itself
-        Debug.Log("num: " + num);
         return num - 1;
     }
 }
