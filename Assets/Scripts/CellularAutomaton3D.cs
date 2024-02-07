@@ -16,7 +16,7 @@ public class CellularAutomaton3D : MonoBehaviour
     int currentHeight;
     int currentDepth;
 
-    int iterations = 2;
+    //int iterations = 3;
     int numAlive = 3;
     int numDead = 5;
 
@@ -27,6 +27,8 @@ public class CellularAutomaton3D : MonoBehaviour
     Vector3 cubeSize;
     bool canGenerateCell;
     bool hasChangedSize;
+    bool canIterate;
+
     Vector3 topLeftCorner;
 
     bool m_isStepped = false;
@@ -62,12 +64,24 @@ public class CellularAutomaton3D : MonoBehaviour
         gridDepth = Convert.ToInt32(input);
     }
 
+    public void getNumAlive(string input) {
+        numAlive = Convert.ToInt32(input);
+    }
+
+    public void getNumDead(string input) {
+        numDead = Convert.ToInt32(input);
+    }
+
     bool isArrayEmpty() {
         return cellsArray.Length == 0;
     }
 
     public void isStepped(bool input) {
         m_isStepped = input;
+    }
+
+    public void checkCanIterate(bool input) {
+        canIterate = input;
     }
 
     public void generateGrid() {
@@ -131,53 +145,58 @@ public class CellularAutomaton3D : MonoBehaviour
     }
 
     IEnumerator createGridBySteps() {
-  
-        for (int it = 0; it <= iterations; it++) {  // change <= to < to do just once, then change again
+        int it = 0;
+
+        for (int i = 0; i < gridWidth; i++) {
+            for (int j = 0; j < gridHeight; j++) {
+                for (int k = 0; k < gridDepth; k++) {
+                    if (canGenerateCell) {
+                        bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
+                        Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
+                        GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
+                        temp.GetComponent<CubeCell>().setCube(randomValue);
+                        temp.transform.SetParent(transform);
+
+                        // Asign cell to a position in the matrix
+                        cellsArray[i, j, k] = temp;
+                    }
+                }
+            }
+        }
+        copyArray(it);
+
+        hasChangedSize = false;
+
+
+        while (canIterate) {
             // Destroy and clear cells array for the next iteration
-            yield return new WaitForSeconds(0.2f);
-            //if (it > 0) {
-            //    if (cellsArray.Length != 0) {
-            //        foreach (GameObject cell in cellsArray) {
-            //            cell.SetActive(false);
-            //        }
-            //    }
-            //}
+            yield return new WaitForSeconds(0.5f);
 
             for (int i = 0; i < gridWidth; i++) {
                 for (int j = 0; j < gridHeight; j++) {
                     for (int k = 0; k < gridDepth; k++) {
                         // Check if the cell matrix is empty before creating a new one
                         if (canGenerateCell) {
-                            if (it == 0) {
-                                
-                                bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
-                                Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
-                                GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
-                                temp.GetComponent<CubeCell>().setCube(randomValue);
-                                temp.transform.SetParent(transform);
-
-                                // Asign cell to a position in the matrix
-                                cellsArray[i, j, k] = temp;
+                            
+                            // Check neigbors
+                            //Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
+                            //GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
+                            int numberOfNeighbors = checkNeighbors(i, j, k);
+                            // If the cell is alive returns true
+                            if (cellsArrayMap[i, j, k]) {
+                                // Check if rule is met for alive cells and asign color
+                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numAlive) ? true : false);
                             } else {
-                                // Check neigbors
-                                //Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
-                                //GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
-                                int numberOfNeighbors = checkNeighbors(i, j, k);
-                                // If the cell is alive returns true
-                                if (cellsArrayMap[i, j, k]) {
-                                    // Check if rule is met for alive cells and asign color
-                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numAlive) ? true : false);
-                                } else {
-                                    // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
-                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= 26 - numDead) ? false : true);
-                                }
-                                //// To keep cells in a closed grid
-                                //if (i == 0 || j == 0 || i == gridHeight - 1 || j == gridWidth - 1) {
-                                //    temp.GetComponent<Cell>().setCellColor(false);
-                                //}
-                                // Add temp cell to the original cells array
-                                //cellsArray[i, j, k] = temp;
+                                // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
+                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= 26 - numDead) ? false : true);
                             }
+                            //// To keep cells in a closed grid
+                            //if (i == 0 || j == 0 || i == gridHeight - 1 || j == gridWidth - 1) {
+                            //    temp.GetComponent<Cell>().setCellColor(false);
+                            //}
+                            // Add temp cell to the original cells array
+                            //cellsArray[i, j, k] = temp;
+                            
 
                             // Create a little pause before drawing each individual cell on the matrix
                             if (m_isStepped) {
@@ -187,19 +206,20 @@ public class CellularAutomaton3D : MonoBehaviour
                     }
                 }
             }
-            
+
             copyArray(it);
-            
+
             hasChangedSize = false;
-            // Clear the cells from the secondary matrix array
-            //if (cellsArrayOne.Length != 0) {
-            //    foreach (GameObject cell in cellsArrayOne) {
-            //        Destroy(cell);
-            //    }
-            //    Array.Clear(cellsArrayOne, 0, cellsArrayOne.Length);
-            //}
-        }
+
+            if (it > 10) {
+                it = 1;
+            }
+            it++;
     }
+        //for (int it = 0; it <= iterations; it++) {  // change <= to < to do just once, then change again
+           
+        //}
+}
     void copyArray(int iterator) {
         if (hasChangedSize) {
             Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
