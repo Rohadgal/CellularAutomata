@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 using UnityEngine;
 
 public class CellularAutomaton3D : MonoBehaviour
@@ -17,17 +18,15 @@ public class CellularAutomaton3D : MonoBehaviour
     int currentDepth;
 
     //int iterations = 3;
-    int numAlive = 3;
-    int numDead = 5;
-
-    float prefabWidth;
-    float prefabHeight;
-    float prefabDepth;
+    int numSurvival = 3;
+    int numBirth = 5;
+    int state = 0;
 
     Vector3 cubeSize;
     bool canGenerateCell;
     bool hasChangedSize;
     bool canIterate;
+    bool isDying;
 
     Vector3 topLeftCorner;
 
@@ -42,13 +41,9 @@ public class CellularAutomaton3D : MonoBehaviour
     private void Start() {
         // Check if cell has been defined and check and assign it's dimension
         if (gridElement != null) {
-            cubeSize = gridElement.GetComponent<Renderer>().bounds.size;
-            prefabWidth = cubeSize.x;
-            prefabHeight = cubeSize.y;
-            prefabDepth = cubeSize.z;
-            //generateGrid();
             return;
         }
+        Debug.Log("Missing Cube Prefab");
     }
 
     // Assign grid width
@@ -64,12 +59,16 @@ public class CellularAutomaton3D : MonoBehaviour
         gridDepth = Convert.ToInt32(input);
     }
 
-    public void getNumAlive(string input) {
-        numAlive = Convert.ToInt32(input);
+    public void getnumSurvival(string input) {
+        numSurvival = Convert.ToInt32(input);
     }
 
-    public void getNumDead(string input) {
-        numDead = Convert.ToInt32(input);
+    public void getnumBirth(string input) {
+        numBirth = Convert.ToInt32(input);
+    }
+
+    public void getState(string input) {
+        state = Convert.ToInt32(input);
     }
 
     bool isArrayEmpty() {
@@ -145,7 +144,7 @@ public class CellularAutomaton3D : MonoBehaviour
     }
 
     IEnumerator createGridBySteps() {
-        int it = 0;
+        int nameNum = 0;
 
         for (int i = 0; i < gridWidth; i++) {
             for (int j = 0; j < gridHeight; j++) {
@@ -154,16 +153,28 @@ public class CellularAutomaton3D : MonoBehaviour
                         bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
                         Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
                         GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
+                        temp.name = "Inst " + nameNum;
+                        // set cube state num
+                        temp.GetComponent<CubeCell>().setState(state);
+                        // set cube render to active true or false depending on random value
                         temp.GetComponent<CubeCell>().setCube(randomValue);
+                        // parent instance to parent empty gameObject pos
                         temp.transform.SetParent(transform);
 
                         // Asign cell to a position in the matrix
                         cellsArray[i, j, k] = temp;
+                        
+                        // Create a little pause before drawing each individual cell on the matrix
+                        if (m_isStepped) {
+                            yield return new WaitForSeconds(0.02f);
+                        }
+                        nameNum++;
                     }
                 }
             }
         }
-        copyArray(it);
+        // Copy the array values to a bool array to know if they are alive or dead
+        copyArray();
 
         hasChangedSize = false;
 
@@ -177,26 +188,41 @@ public class CellularAutomaton3D : MonoBehaviour
                     for (int k = 0; k < gridDepth; k++) {
                         // Check if the cell matrix is empty before creating a new one
                         if (canGenerateCell) {
-                            
-                            // Check neigbors
-                            //Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
-                            //GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
                             int numberOfNeighbors = checkNeighbors(i, j, k);
                             // If the cell is alive returns true
                             if (cellsArrayMap[i, j, k]) {
                                 // Check if rule is met for alive cells and asign color
-                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numAlive) ? true : false);
-                            } else {
-                                // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
-                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= 26 - numDead) ? false : true);
+                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numSurvival) ? true : false);
+
+                            } else { // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
+                                //Debug.Log("dead with neigbors amount: " + numberOfNeighbors);
+                                // update state of dead cells
+                                int tempState = cellsArray[i, j, k].GetComponent<CubeCell>().getState() - 1;
+                                cellsArray[i, j, k].GetComponent<CubeCell>().setState(tempState);
+
+                                // check for survival only of cell has completely disappeared
+                                if (cellsArray[i, j, k].GetComponent <CubeCell>().getState() == 0) {
+                                    // set cube to false to turn if off
+                                   // Debug.LogWarning("died with neigbors amount: " + numberOfNeighbors);
+                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube(false);
+                                }
+
+                                if(cellsArray[i, j, k].GetComponent<CubeCell>().getState() < 0) {
+                                    // check if birth is possible with enough live cell neighbors
+                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((26 - numberOfNeighbors >= numBirth) ? true : false);
+                                    // Restore state back to original value if cell is born again
+                                    if (cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive()) {
+                                        cellsArray[i, j, k].GetComponent<CubeCell>().setState(state);
+                                        Debug.Log("Reborn with number of alive neighbors: " + (26 - numberOfNeighbors) + " when needed: " + numBirth);
+                                        Debug.Log("name: " + cellsArray[i, j, k].name);
+                                    } else {
+                                        //Debug.LogWarning("stay dead");
+                                    }
+                                }
+
+                                
+                                
                             }
-                            //// To keep cells in a closed grid
-                            //if (i == 0 || j == 0 || i == gridHeight - 1 || j == gridWidth - 1) {
-                            //    temp.GetComponent<Cell>().setCellColor(false);
-                            //}
-                            // Add temp cell to the original cells array
-                            //cellsArray[i, j, k] = temp;
-                            
 
                             // Create a little pause before drawing each individual cell on the matrix
                             if (m_isStepped) {
@@ -207,29 +233,17 @@ public class CellularAutomaton3D : MonoBehaviour
                 }
             }
 
-            copyArray(it);
+            copyArray();
 
             hasChangedSize = false;
-
-            if (it > 10) {
-                it = 1;
-            }
-            it++;
+        }
     }
-        //for (int it = 0; it <= iterations; it++) {  // change <= to < to do just once, then change again
-           
-        //}
-}
-    void copyArray(int iterator) {
+    void copyArray() {
+        //Debug.LogWarning("array copied");
         if (hasChangedSize) {
             Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
             cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
         }
-
-        //if(iterator == 0) {
-        //    cellsArrayOne = cellsArrayOne = new GameObject[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
-        //}
-
 
         for (int i = 0; i < cellsArray.GetLength(0); i++) {
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
@@ -243,15 +257,21 @@ public class CellularAutomaton3D : MonoBehaviour
     int checkNeighbors(int x, int y, int z) {
         int num = 0;
         // Exclude the edges of the grid from the math
-        if (x == 0 || y == 0 || z == 0 || x == gridWidth - 1 || y == gridHeight - 1 || z == gridDepth - 1) {
-            return 0;
-        }
+        //if (x == 0 || y == 0 || z == 0 || x == gridWidth - 1 || y == gridHeight - 1 || z == gridDepth - 1) {
+        //    return 0;
+        //}
         // Go through the neighbors of the cell and check if they are the same color as the center cell
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
-                for(int k = -1; k <= 1; k++) {
-                    if (cellsArrayMap[x + i, y + j, z + k] == cellsArrayMap[x, y, z]) {
-                        num++;
+                for (int k = -1; k <= 1; k++) {
+
+                    if (x + i >= 0 && x + i < gridWidth &&
+                    y + j >= 0 && y + j < gridHeight &&
+                    z + k >= 0 && z + k < gridWidth) {
+                        if (cellsArrayMap[x + i, y + j, z + k] == cellsArrayMap[x, y, z]) {
+                            //Debug.LogWarning("neigbor: " + cellsArrayMap[x + i, y + j, z + k] + " Local: " + cellsArrayMap[x, y, z]);
+                            num++;
+                        }
                     }
                 }
             }

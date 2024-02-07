@@ -8,6 +8,7 @@ public class CubeCell : MonoBehaviour
     bool _isAlive = true;
     Material _material;
     MeshRenderer _meshRenderer;
+    public int _state;
 
     private void Awake() {
         if(_meshRenderer == null) {
@@ -20,8 +21,7 @@ public class CubeCell : MonoBehaviour
         _meshRenderer = GetComponent<MeshRenderer>();
         _material = GetComponent<Renderer>().material;
         if(_isAlive ) {
-            _material.color = Color.white;
-            
+            _material.color = Color.white;   
         }
     }
 
@@ -42,15 +42,30 @@ public class CubeCell : MonoBehaviour
         return _isAlive;
     }
 
+    public int getState() {
+        return _state;
+    }
+
     public void setCube(bool isAlive) {
         _isAlive = isAlive;
+        // check if mesh renderer is null
         if( _meshRenderer != null ) {
             if(!_isAlive) {
-                _meshRenderer.enabled = false;
+                if(_state <= 0) {
+                   // Debug.LogWarning("off");
+                    _meshRenderer.enabled = false;
+                    return;
+                }
+                _meshRenderer.material.color = Color.red;
                 return;
             }
             _meshRenderer.enabled=true;
+            _meshRenderer.material.color = Color.white;
         }
+    }
+
+    public void setState(int t_state) {
+        _state = t_state;
     }
 }
     

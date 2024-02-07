@@ -958,7 +958,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2061519979}
         m_TargetAssemblyTypeName: CellularAutomaton3D, Assembly-CSharp
-        m_MethodName: getNumDead
+        m_MethodName: getnumBirth
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2367,7 +2367,7 @@ GameObject:
   - component: {fileID: 1070195712}
   - component: {fileID: 1070195711}
   m_Layer: 5
-  m_Name: Alive text
+  m_Name: Birth text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2412,7 +2412,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Alive
+  m_text: Birth
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
   m_sharedMaterial: {fileID: 2140032, guid: dc36b3fdc14f47ebb36fd484a67e268a, type: 2}
@@ -3500,7 +3500,7 @@ GameObject:
   - component: {fileID: 1592508499}
   - component: {fileID: 1592508498}
   m_Layer: 5
-  m_Name: InputField Iterations
+  m_Name: InputField State
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3589,9 +3589,9 @@ MonoBehaviour:
   m_OnEndEdit:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: CellularAutomaton2D, Assembly-CSharp
-        m_MethodName: getIterations
+      - m_Target: {fileID: 2061519979}
+        m_TargetAssemblyTypeName: CellularAutomaton3D, Assembly-CSharp
+        m_MethodName: getState
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3687,7 +3687,7 @@ GameObject:
   - component: {fileID: 1598366251}
   - component: {fileID: 1598366250}
   m_Layer: 5
-  m_Name: Iterations text
+  m_Name: State text
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4142,7 +4142,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2061519979}
         m_TargetAssemblyTypeName: CellularAutomaton3D, Assembly-CSharp
-        m_MethodName: getNumAlive
+        m_MethodName: getnumSurvival
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4290,7 +4290,7 @@ GameObject:
   - component: {fileID: 1918935975}
   - component: {fileID: 1918935974}
   m_Layer: 5
-  m_Name: IterationsPanel
+  m_Name: State Panel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
