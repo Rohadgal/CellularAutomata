@@ -21,6 +21,8 @@ public class CellularAutomaton3D : MonoBehaviour
     int numSurvival = 3;
     int numBirth = 5;
     int state = 0;
+    int neighborsNumSurvive;
+    int neighborsNumBirth;
 
     bool canGenerateCell;
     bool hasChangedSize;
@@ -38,19 +40,23 @@ public class CellularAutomaton3D : MonoBehaviour
             return;
         }
         Debug.Log("Missing Cube Prefab");
+
     }
 
     // Assign grid width
     public void getWidthInput(string input) {
         gridWidth = Convert.ToInt32(input);
+        hasChangedSize = true;
     }
     // Assign grid height
     public void getHeightInput(string input) {
         gridHeight = Convert.ToInt32(input);
+        hasChangedSize = true;
     }
     // Assign grid depth
     public void getHeightDepth(string input) {
         gridDepth = Convert.ToInt32(input);
+        hasChangedSize = true;
     }
 
     public void getnumSurvival(string input) {
@@ -82,7 +88,7 @@ public class CellularAutomaton3D : MonoBehaviour
             canGenerateCell = false;
             StopAllCoroutines();
 
-            if (!isArrayEmpty()) {
+            if (!isArrayEmpty() && hasChangedSize) {
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
             }
         }
@@ -90,9 +96,7 @@ public class CellularAutomaton3D : MonoBehaviour
         //// Resize array if it is not empty and values of dimensions are different
         if (!isArrayEmpty()) {
             Debug.Log("aaa");
-            if(gridWidth != currentWidth ||
-            gridHeight != currentHeight ||
-             gridDepth != currentDepth) {
+            if(hasChangedSize) {
                 //Debug.Log("bbb");
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
             }
@@ -118,9 +122,6 @@ public class CellularAutomaton3D : MonoBehaviour
             }
             ResizeMatrix(gridWidth, gridHeight, gridDepth);
         }
-        currentWidth = gridWidth;
-        currentHeight = gridHeight;
-        currentDepth = gridDepth;
 
         canGenerateCell = true;
         StartCoroutine(createGridBySteps());
@@ -128,18 +129,19 @@ public class CellularAutomaton3D : MonoBehaviour
 
     // Create a new matrix with the desired size
     void ResizeMatrix(int newRows, int newColumns, int newDepth) {
-        hasChangedSize = true;
+       
         foreach (GameObject cell in cellsArray) {
             Destroy(cell);
         }
         Array.Clear(cellsArray, 0, cellsArray.Length);
         GameObject[,,] newMatrix = new GameObject[newRows, newColumns, newDepth];
         cellsArray = newMatrix;
+        hasChangedSize = false;
+        cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
     }
 
     IEnumerator createGridBySteps() {
         int nameNum = 0;
-
         for (int i = 0; i < gridWidth; i++) {
             for (int j = 0; j < gridHeight; j++) {
                 for (int k = 0; k < gridDepth; k++) {
@@ -170,9 +172,6 @@ public class CellularAutomaton3D : MonoBehaviour
         // Copy the array values to a bool array to know if they are alive or dead
         copyArray();
 
-        hasChangedSize = false;
-
-
         while (canIterate) {
             // Destroy and clear cells array for the next iteration
             yield return new WaitForSeconds(0.5f);
@@ -181,33 +180,30 @@ public class CellularAutomaton3D : MonoBehaviour
                     for (int k = 0; k < gridDepth; k++) {
                         // Check if the cell matrix is empty before creating a new one
                         if (canGenerateCell) {
-                            int numberOfNeighbors = checkNeighbors(i, j, k);
+                            checkNeighbors(i, j, k);
                             // If the cell is alive returns true
                             if (cellsArrayMap[i, j, k]) {
                                 // Check if rule is met for alive cells and asign color
-                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numSurvival) ? true : false);
+                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumSurvive >= numSurvival) ? true : false);
                             } else { // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
-                                // update state of dead cells
+                                // Update the state number
                                 int tempState = cellsArray[i, j, k].GetComponent<CubeCell>().getState() - 1;
+                                // Assign updated state nmber
                                 cellsArray[i, j, k].GetComponent<CubeCell>().setState(tempState);
-
-                                // check for survival only of cell has completely disappeared
-                                if (cellsArray[i, j, k].GetComponent <CubeCell>().getState() == 0) {
+                                //// check if state number has reached zero to turn off the mesh renderer
+                                if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() == 0) {
                                     // set cube to false to turn if off
                                     cellsArray[i, j, k].GetComponent<CubeCell>().setCube(false);
                                 }
-
-                                if(cellsArray[i, j, k].GetComponent<CubeCell>().getState() < 0) {
+                                if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() < 0) {
                                     // check if birth is possible with enough live cell neighbors
-                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((26 - numberOfNeighbors >= numBirth) ? true : false);
+                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumBirth >= numBirth) ? true : false);
                                     // Restore state back to original value if cell is born again
                                     if (cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive()) {
                                         cellsArray[i, j, k].GetComponent<CubeCell>().setState(state);
-                                        Debug.Log("Reborn with number of alive neighbors: " + (26 - numberOfNeighbors) + " when needed: " + numBirth);
-                                        Debug.Log("name: " + cellsArray[i, j, k].name);
-                                    } else {
-                                        //Debug.LogWarning("stay dead");
-                                    }
+                                        Debug.Log("Reborn with number of alive neighbors: " + (neighborsNumBirth) + " when needed: " + numBirth);
+                                       // Debug.Log("name: " + cellsArray[i, j, k].name);
+                                    } 
                                 } 
                             }
                             // Create a little pause before drawing each individual cell on the matrix
@@ -218,10 +214,8 @@ public class CellularAutomaton3D : MonoBehaviour
                     }
                 }
             }
-
             copyArray();
 
-            hasChangedSize = false;
         }
     }
     void copyArray() {
@@ -235,30 +229,40 @@ public class CellularAutomaton3D : MonoBehaviour
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
                 for(int k = 0; k < cellsArray.GetLength(2); k++) {
                     cellsArrayMap[i, j, k] = cellsArray[i,j,k].GetComponent<CubeCell>().getIsAlive();
+                    Debug.Log("cellsMap: " + cellsArrayMap[i, j, k] + " is: " + cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive());
                 }
             }
         }
     }
 
-    int checkNeighbors(int x, int y, int z) {
-        int num = 0;
-        // Go through the neighbors of the cell and check if they are the same color as the center cell
+    void checkNeighbors(int x, int y, int z) {
+        // Reset values for neighborsNumSurvive and neighborsNumBirth for each new iteration
+        neighborsNumSurvive = 0;
+        neighborsNumBirth = 0;
+   
+        // Go through the neighbors of the cell
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 for (int k = -1; k <= 1; k++) {
-
+                    // Procure to stay inside the bounds of the matrix
                     if (x + i >= 0 && x + i < gridWidth &&
                     y + j >= 0 && y + j < gridHeight &&
                     z + k >= 0 && z + k < gridWidth) {
-                        if (cellsArrayMap[x + i, y + j, z + k] == cellsArrayMap[x, y, z]) {
-                            //Debug.LogWarning("neigbor: " + cellsArrayMap[x + i, y + j, z + k] + " Local: " + cellsArrayMap[x, y, z]);
-                            num++;
+                        // check if cell is alive
+                        if(cellsArrayMap[x, y, z]) { 
+                            // Check how many alive neighbors a live cell has
+                            if (cellsArrayMap[x + i, y + j, z + k] == cellsArrayMap[x, y, z]) {
+                                neighborsNumSurvive++;
+                            }
+                        } else { 
+                            // Check how many alive neighbors a dead cell has
+                            if (cellsArrayMap[x + i, y + j, z + k] != cellsArrayMap[x, y, z]) {
+                                neighborsNumBirth++;
+                            }
                         }
                     }
                 }
             }
         }
-        // Minus one to ignore the center cell comparing with itself
-        return num - 1;
     }
 }
