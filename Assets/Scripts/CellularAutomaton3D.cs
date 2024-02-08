@@ -22,19 +22,13 @@ public class CellularAutomaton3D : MonoBehaviour
     int numBirth = 5;
     int state = 0;
 
-    Vector3 cubeSize;
     bool canGenerateCell;
     bool hasChangedSize;
     bool canIterate;
-    bool isDying;
-
-    Vector3 topLeftCorner;
 
     bool m_isStepped = false;
 
     GameObject[,,] cellsArray = new GameObject[0, 0, 0];
-
-    GameObject[,,] cellsArrayOne = new GameObject[0, 0, 0];
 
     bool[,,] cellsArrayMap = new bool[0, 0, 0];
 
@@ -182,7 +176,6 @@ public class CellularAutomaton3D : MonoBehaviour
         while (canIterate) {
             // Destroy and clear cells array for the next iteration
             yield return new WaitForSeconds(0.5f);
-
             for (int i = 0; i < gridWidth; i++) {
                 for (int j = 0; j < gridHeight; j++) {
                     for (int k = 0; k < gridDepth; k++) {
@@ -193,9 +186,7 @@ public class CellularAutomaton3D : MonoBehaviour
                             if (cellsArrayMap[i, j, k]) {
                                 // Check if rule is met for alive cells and asign color
                                 cellsArray[i, j, k].GetComponent<CubeCell>().setCube((numberOfNeighbors >= numSurvival) ? true : false);
-
                             } else { // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
-                                //Debug.Log("dead with neigbors amount: " + numberOfNeighbors);
                                 // update state of dead cells
                                 int tempState = cellsArray[i, j, k].GetComponent<CubeCell>().getState() - 1;
                                 cellsArray[i, j, k].GetComponent<CubeCell>().setState(tempState);
@@ -203,7 +194,6 @@ public class CellularAutomaton3D : MonoBehaviour
                                 // check for survival only of cell has completely disappeared
                                 if (cellsArray[i, j, k].GetComponent <CubeCell>().getState() == 0) {
                                     // set cube to false to turn if off
-                                   // Debug.LogWarning("died with neigbors amount: " + numberOfNeighbors);
                                     cellsArray[i, j, k].GetComponent<CubeCell>().setCube(false);
                                 }
 
@@ -218,12 +208,8 @@ public class CellularAutomaton3D : MonoBehaviour
                                     } else {
                                         //Debug.LogWarning("stay dead");
                                     }
-                                }
-
-                                
-                                
+                                } 
                             }
-
                             // Create a little pause before drawing each individual cell on the matrix
                             if (m_isStepped) {
                                 yield return new WaitForSeconds(0.02f);
@@ -256,10 +242,6 @@ public class CellularAutomaton3D : MonoBehaviour
 
     int checkNeighbors(int x, int y, int z) {
         int num = 0;
-        // Exclude the edges of the grid from the math
-        //if (x == 0 || y == 0 || z == 0 || x == gridWidth - 1 || y == gridHeight - 1 || z == gridDepth - 1) {
-        //    return 0;
-        //}
         // Go through the neighbors of the cell and check if they are the same color as the center cell
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
