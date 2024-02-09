@@ -25,19 +25,6 @@ public class CubeCell : MonoBehaviour
         }
     }
 
-    //public void setCubeColor(bool isAlive) {
-    //    _isAlive = isAlive;
-    //    if(_material != null ) {
-    //        if(!_isAlive) {
-    //            _material.color = Color.magenta;
-    //            return;
-    //        }
-    //        _material.color = Color.white;
-    //        return;
-    //    }
-    //    Debug.Log("Null material");
-    //}
-
     public bool getIsAlive() {
         return _isAlive;
     }

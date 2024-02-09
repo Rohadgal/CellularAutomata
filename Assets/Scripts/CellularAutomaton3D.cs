@@ -27,7 +27,7 @@ public class CellularAutomaton3D : MonoBehaviour
     bool canGenerateCell;
     bool hasChangedSize;
     bool canIterate;
-
+    bool canBreakWhile;
     bool m_isStepped = false;
 
     GameObject[,,] cellsArray = new GameObject[0, 0, 0];
@@ -83,7 +83,17 @@ public class CellularAutomaton3D : MonoBehaviour
         canIterate = input;
     }
 
+    public void clear() {
+        StopAllCoroutines();
+       
+        ResizeMatrix(gridWidth, gridHeight, gridDepth);
+        //canBreakWhile = true;
+        
+    }
+
     public void generateGrid() {
+        //canBreakWhile = false;
+
         if (canGenerateCell) {
             canGenerateCell = false;
             StopAllCoroutines();
@@ -91,15 +101,16 @@ public class CellularAutomaton3D : MonoBehaviour
             if (!isArrayEmpty() && hasChangedSize) {
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
             }
+            clear();
         }
 
         //// Resize array if it is not empty and values of dimensions are different
-        if (!isArrayEmpty()) {
+        if (hasChangedSize) {
             Debug.Log("aaa");
-            if(hasChangedSize) {
-                //Debug.Log("bbb");
+        
+          
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
-            }
+            
         }
 
         if (gridWidth != 0 && gridHeight == 0 && gridDepth == 0) {
@@ -134,14 +145,13 @@ public class CellularAutomaton3D : MonoBehaviour
             Destroy(cell);
         }
         Array.Clear(cellsArray, 0, cellsArray.Length);
-        GameObject[,,] newMatrix = new GameObject[newRows, newColumns, newDepth];
-        cellsArray = newMatrix;
-        hasChangedSize = false;
+        cellsArray = new GameObject[newRows, newColumns, newDepth];
+        Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
         cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
+        hasChangedSize = false;
     }
 
     IEnumerator createGridBySteps() {
-        int nameNum = 0;
         for (int i = 0; i < gridWidth; i++) {
             for (int j = 0; j < gridHeight; j++) {
                 for (int k = 0; k < gridDepth; k++) {
@@ -149,7 +159,6 @@ public class CellularAutomaton3D : MonoBehaviour
                         bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
                         Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
                         GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
-                        temp.name = "Inst " + nameNum;
                         // set cube state num
                         temp.GetComponent<CubeCell>().setState(state);
                         // set cube render to active true or false depending on random value
@@ -164,7 +173,6 @@ public class CellularAutomaton3D : MonoBehaviour
                         if (m_isStepped) {
                             yield return new WaitForSeconds(0.02f);
                         }
-                        nameNum++;
                     }
                 }
             }
@@ -173,6 +181,9 @@ public class CellularAutomaton3D : MonoBehaviour
         copyArray();
 
         while (canIterate) {
+            //if (canBreakWhile) {
+            //    canIterate = false;
+            //}
             // Destroy and clear cells array for the next iteration
             yield return new WaitForSeconds(0.5f);
             for (int i = 0; i < gridWidth; i++) {
@@ -201,7 +212,7 @@ public class CellularAutomaton3D : MonoBehaviour
                                     // Restore state back to original value if cell is born again
                                     if (cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive()) {
                                         cellsArray[i, j, k].GetComponent<CubeCell>().setState(state);
-                                        Debug.Log("Reborn with number of alive neighbors: " + (neighborsNumBirth) + " when needed: " + numBirth);
+                                        //Debug.Log("Reborn with number of alive neighbors: " + (neighborsNumBirth) + " when needed: " + numBirth);
                                        // Debug.Log("name: " + cellsArray[i, j, k].name);
                                     } 
                                 } 
@@ -229,7 +240,6 @@ public class CellularAutomaton3D : MonoBehaviour
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
                 for(int k = 0; k < cellsArray.GetLength(2); k++) {
                     cellsArrayMap[i, j, k] = cellsArray[i,j,k].GetComponent<CubeCell>().getIsAlive();
-                    Debug.Log("cellsMap: " + cellsArrayMap[i, j, k] + " is: " + cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive());
                 }
             }
         }
