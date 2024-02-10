@@ -24,7 +24,6 @@ public class CellularAutomaton3D : MonoBehaviour
     bool canGenerateCell;
     bool hasChangedSize;
     bool canIterate;
-    bool canBreakIteration;
     bool m_isStepped;
     bool isMoore;
 
@@ -87,77 +86,33 @@ public class CellularAutomaton3D : MonoBehaviour
 
     public void clear() {
         bool previousStateOfIteration = canIterate;
+
         StopAllCoroutines();
+
         if(canIterate) {
+            Debug.Log("canIterate: " + canIterate);
             canIterate = false;
         }
+
         foreach (GameObject cell in cellsArray) {
             Destroy(cell);
         }
-        if (hasChangedSize) {
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-            return;
-        }
+
+        //if (hasChangedSize) {
+        //    ResizeMatrix(gridWidth, gridHeight, gridDepth);
+        //    return;
+        //}
+
         if(previousStateOfIteration) {
-            canIterate = true;
+            canIterate = previousStateOfIteration;
+            Debug.Log("reset canIterate to true: " + canIterate);
         }
-        //canBreakWhile = true;
-
-    }
-
-    // Function to create the matrix of prefabs with specified dimensions and in the manner that specific conditions allow it
-    public void generateGrid() {
-        //canBreakWhile = false;
         
-        // Condition to allow creation of matrix when button pressed even if the previous matrix generation is in process
-        if (canGenerateCell) {
-            canGenerateCell = false;
-            StopAllCoroutines();
-
-            if (!isArrayEmpty() && hasChangedSize) {
-                ResizeMatrix(gridWidth, gridHeight, gridDepth);
-                Debug.Log("resize gen");
-            }
-            clear();
-        }
-
-        // Resize array if it is not empty and values of dimensions are different
-        if (hasChangedSize) {
-            Debug.Log("array resized in grid generation");
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        }
-
-        if (gridWidth != 0 && gridHeight == 0 && gridDepth == 0) {
-            gridHeight = gridWidth;
-            gridDepth = gridWidth;
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        }else if (gridWidth == 0 && gridHeight != 0 && gridDepth == 0) {
-            gridWidth = gridHeight;
-            gridDepth = gridHeight;
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        }else if (gridWidth == 0 && gridHeight == 0 && gridDepth != 0) {
-            gridWidth = gridDepth;
-            gridHeight = gridDepth;
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        }else if (cellsArray.Length == 0) {
-            if (gridWidth == 0 || gridHeight == 0 || gridDepth == 0) {
-                gridWidth = 10;
-                gridHeight = 10;
-                gridDepth = 10;
-            }
-            ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        }
-
-        canGenerateCell = true;
-        StartCoroutine(createGridBySteps());
     }
 
     // Create a new matrix with the desired size
     void ResizeMatrix(int newRows, int newColumns, int newDepth) {
-       // Delete all instances of the matrix
-        foreach (GameObject cell in cellsArray) {
-            Destroy(cell);
-        }
+
         // Clear the array of prefabs
         Array.Clear(cellsArray, 0, cellsArray.Length);
         // Create new matrix with new dimensions
@@ -168,8 +123,65 @@ public class CellularAutomaton3D : MonoBehaviour
         cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
         // Set bool to false because resizing has finished
         hasChangedSize = false;
-        Debug.Log("changed size");
+        Debug.Log("changed size x: " + newRows + " y: " + newColumns + " z: " + newDepth);
     }
+
+    // Function to create the matrix of prefabs with specified dimensions and in the manner that specific conditions allow it
+    public void generateGrid() {
+        //canBreakWhile = false;
+        if(!canGenerateCell) {
+            cellsArray = new GameObject[gridWidth, gridHeight, gridDepth];
+            cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
+            hasChangedSize = false;
+        }
+
+        // Condition to allow creation of matrix when button pressed even if the previous matrix generation is in process
+        if (canGenerateCell) {
+            canGenerateCell = false;
+            //StopAllCoroutines();
+
+            clear();
+
+            if (!isArrayEmpty() && hasChangedSize) {
+                ResizeMatrix(gridWidth, gridHeight, gridDepth);
+                Debug.Log("resize gen");
+            }
+        }
+
+        //// Resize array if it is not empty and values of dimensions are different
+        //if (hasChangedSize) {
+        //    Debug.Log("array resized in grid generation");
+        //    ResizeMatrix(gridWidth, gridHeight, gridDepth);
+        //}
+        if (isArrayEmpty()) {
+
+            if (gridWidth != 0 && gridHeight == 0 && gridDepth == 0) {
+                gridHeight = gridWidth;
+                gridDepth = gridWidth;
+                ResizeMatrix(gridWidth, gridHeight, gridDepth);
+            }else if (gridWidth == 0 && gridHeight != 0 && gridDepth == 0) {
+                gridWidth = gridHeight;
+                gridDepth = gridHeight;
+                ResizeMatrix(gridWidth, gridHeight, gridDepth);
+            }else if (gridWidth == 0 && gridHeight == 0 && gridDepth != 0) {
+                gridWidth = gridDepth;
+                gridHeight = gridDepth;
+                ResizeMatrix(gridWidth, gridHeight, gridDepth);
+            }else if (cellsArray.Length == 0) {
+                if (gridWidth == 0 || gridHeight == 0 || gridDepth == 0) {
+                    gridWidth = 10;
+                    gridHeight = 10;
+                    gridDepth = 10;
+                }
+                ResizeMatrix(gridWidth, gridHeight, gridDepth);
+            }
+        }
+
+        canGenerateCell = true;
+        StartCoroutine(createGridBySteps());
+    }
+
+   
 
     // Coroutine to create matrix of cubes with small breaks of time
     IEnumerator createGridBySteps() {
@@ -266,10 +278,9 @@ public class CellularAutomaton3D : MonoBehaviour
     }
 
     void copyArray() {
-        if (hasChangedSize) {
-            Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
-            cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
-        }
+        //if (hasChangedSize) {
+        //    ResizeMatrix(gridWidth, gridHeight, gridDepth);
+        //}
         for (int i = 0; i < cellsArray.GetLength(0); i++) {
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
                 for(int k = 0; k < cellsArray.GetLength(2); k++) {
@@ -291,7 +302,7 @@ public class CellularAutomaton3D : MonoBehaviour
                     // Procure to stay inside the bounds of the matrix
                     if (x + i >= 0 && x + i < gridWidth &&
                     y + j >= 0 && y + j < gridHeight &&
-                    z + k >= 0 && z + k < gridWidth) {
+                    z + k >= 0 && z + k < gridDepth) {
                         // check if cell is alive
                         if(cellsArrayMap[x, y, z]) { 
                             // Check how many alive neighbors a live cell has
@@ -301,6 +312,7 @@ public class CellularAutomaton3D : MonoBehaviour
                             }
                         }
                         // Check how many alive neighbors a dead cell has
+                        Debug.LogWarning("ArrayMap it values  x: " + (x + i) + " y: " + (y + j) + " z: " + (z + k));
                         if (cellsArrayMap[x + i, y + j, z + k]) {
                             neighborsNumBirth++;
                         }
