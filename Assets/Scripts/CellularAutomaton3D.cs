@@ -13,10 +13,9 @@ public class CellularAutomaton3D : MonoBehaviour
     int gridWidth = 0;
     int gridHeight = 0;
     int gridDepth = 0;
-
-    //int iterations = 3;
-    int numSurvival = 3;
-    int numBirth = 5;
+    
+    int numSurvival = 0;
+    int numBirth = 0;
     int state = 0;
     int neighborsNumSurvive;
     int neighborsNumBirth;
@@ -26,6 +25,7 @@ public class CellularAutomaton3D : MonoBehaviour
     bool canIterate;
     bool m_isStepped;
     bool isMoore;
+    bool isFirstGenerationOfCubes;
 
     GameObject[,,] cellsArray = new GameObject[0, 0, 0];
 
@@ -37,7 +37,7 @@ public class CellularAutomaton3D : MonoBehaviour
             return;
         }
         Debug.Log("Missing Cube Prefab");
-
+        isFirstGenerationOfCubes = true;
     }
 
     // Assign grid width
@@ -55,57 +55,51 @@ public class CellularAutomaton3D : MonoBehaviour
         gridDepth = Convert.ToInt32(input);
         hasChangedSize = true;
     }
-
+    // Assign number of alive cells needed to survive
     public void getnumSurvival(string input) {
         numSurvival = Convert.ToInt32(input);
     }
-
+    // Assign number of alive cells needed to reborn
     public void getnumBirth(string input) {
         numBirth = Convert.ToInt32(input);
     }
-
+    // Assign number of states before cell disappears
     public void getState(string input) {
         state = Convert.ToInt32(input);
     }
-
+    // Check if cubes matrix is empty
     bool isArrayEmpty() {
         return cellsArray.Length == 0;
     }
-
+    // Decide wether the cubes are drawn one by one
     public void isStepped(bool input) {
         m_isStepped = input;
     }
-
+    // Decide if iteration is desired after the first random cubes are created
     public void checkCanIterate(bool input) {
         canIterate = input;
     }
-
+    // Decide if the neighbor checking model is Moore's or Von Neumann's
     public void checkIsMoore(bool input) {
         isMoore = input;
     }
-
+    // Clear all cube instances from the scene
     public void clear() {
+        // Save previous value of iteration to reset after clearing
         bool previousStateOfIteration = canIterate;
-
+        // stop the iterations of cube setting
         StopAllCoroutines();
-
+        // Stop iterations of the while loop
         if(canIterate) {
-            Debug.Log("canIterate: " + canIterate);
             canIterate = false;
         }
-
+        // Destroy cubes' instances 
         foreach (GameObject cell in cellsArray) {
             Destroy(cell);
         }
-
-        //if (hasChangedSize) {
-        //    ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        //    return;
-        //}
-
+        // Set iterations back to true if they where already set that way before clear function
         if(previousStateOfIteration) {
             canIterate = previousStateOfIteration;
-            Debug.Log("reset canIterate to true: " + canIterate);
         }
         
     }
@@ -123,51 +117,47 @@ public class CellularAutomaton3D : MonoBehaviour
         cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
         // Set bool to false because resizing has finished
         hasChangedSize = false;
-        Debug.Log("changed size x: " + newRows + " y: " + newColumns + " z: " + newDepth);
     }
 
     // Function to create the matrix of prefabs with specified dimensions and in the manner that specific conditions allow it
     public void generateGrid() {
-        //canBreakWhile = false;
-        if(!canGenerateCell) {
+        // Set the size of the cells matrix of cubes and matrix bool map for the first generation of cubes since Game in play mode
+        if(isFirstGenerationOfCubes) {
             cellsArray = new GameObject[gridWidth, gridHeight, gridDepth];
             cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
             hasChangedSize = false;
+            isFirstGenerationOfCubes = false;
         }
 
         // Condition to allow creation of matrix when button pressed even if the previous matrix generation is in process
         if (canGenerateCell) {
             canGenerateCell = false;
-            //StopAllCoroutines();
-
+            // Clear all instances of cube's matrix
             clear();
-
+            // Resize matrix of cubes if new values were input in the x, y and z dimensions
             if (!isArrayEmpty() && hasChangedSize) {
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
-                Debug.Log("resize gen");
             }
         }
-
-        //// Resize array if it is not empty and values of dimensions are different
-        //if (hasChangedSize) {
-        //    Debug.Log("array resized in grid generation");
-        //    ResizeMatrix(gridWidth, gridHeight, gridDepth);
-        //}
+        // Assign values to dimensions if the inputs are empty for the first generation of cubes 
         if (isArrayEmpty()) {
-
+            // Values assignment in case only width was assigned
             if (gridWidth != 0 && gridHeight == 0 && gridDepth == 0) {
                 gridHeight = gridWidth;
                 gridDepth = gridWidth;
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
-            }else if (gridWidth == 0 && gridHeight != 0 && gridDepth == 0) {
+                // Values assignment in case only height was assigned
+            } else if (gridWidth == 0 && gridHeight != 0 && gridDepth == 0) {
                 gridWidth = gridHeight;
                 gridDepth = gridHeight;
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
-            }else if (gridWidth == 0 && gridHeight == 0 && gridDepth != 0) {
+                // Values assignment in case only depth was assigned
+            } else if (gridWidth == 0 && gridHeight == 0 && gridDepth != 0) {
                 gridWidth = gridDepth;
                 gridHeight = gridDepth;
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
-            }else if (cellsArray.Length == 0) {
+                // Values default assignment in case all input dimension slots are empty
+            } else if (cellsArray.Length == 0) {
                 if (gridWidth == 0 || gridHeight == 0 || gridDepth == 0) {
                     gridWidth = 10;
                     gridHeight = 10;
@@ -229,7 +219,6 @@ public class CellularAutomaton3D : MonoBehaviour
             }
             // Copy the array values to a bool array to know if they are alive or dead
             copyArray();
-            Debug.Log("iteration");
         }
     }
 
@@ -312,7 +301,6 @@ public class CellularAutomaton3D : MonoBehaviour
                             }
                         }
                         // Check how many alive neighbors a dead cell has
-                        Debug.LogWarning("ArrayMap it values  x: " + (x + i) + " y: " + (y + j) + " z: " + (z + k));
                         if (cellsArrayMap[x + i, y + j, z + k]) {
                             neighborsNumBirth++;
                         }
