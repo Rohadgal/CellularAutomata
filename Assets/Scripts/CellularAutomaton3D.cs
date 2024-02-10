@@ -14,10 +14,6 @@ public class CellularAutomaton3D : MonoBehaviour
     int gridHeight = 0;
     int gridDepth = 0;
 
-    int currentWidth;
-    int currentHeight;
-    int currentDepth;
-
     //int iterations = 3;
     int numSurvival = 3;
     int numBirth = 5;
@@ -28,7 +24,7 @@ public class CellularAutomaton3D : MonoBehaviour
     bool canGenerateCell;
     bool hasChangedSize;
     bool canIterate;
-    bool canBreakWhile;
+    bool canBreakIteration;
     bool m_isStepped;
     bool isMoore;
 
@@ -90,29 +86,44 @@ public class CellularAutomaton3D : MonoBehaviour
     }
 
     public void clear() {
+        bool previousStateOfIteration = canIterate;
         StopAllCoroutines();
-       
-        ResizeMatrix(gridWidth, gridHeight, gridDepth);
+        if(canIterate) {
+            canIterate = false;
+        }
+        foreach (GameObject cell in cellsArray) {
+            Destroy(cell);
+        }
+        if (hasChangedSize) {
+            ResizeMatrix(gridWidth, gridHeight, gridDepth);
+            return;
+        }
+        if(previousStateOfIteration) {
+            canIterate = true;
+        }
         //canBreakWhile = true;
-        
+
     }
 
+    // Function to create the matrix of prefabs with specified dimensions and in the manner that specific conditions allow it
     public void generateGrid() {
         //canBreakWhile = false;
-
+        
+        // Condition to allow creation of matrix when button pressed even if the previous matrix generation is in process
         if (canGenerateCell) {
             canGenerateCell = false;
             StopAllCoroutines();
 
             if (!isArrayEmpty() && hasChangedSize) {
                 ResizeMatrix(gridWidth, gridHeight, gridDepth);
+                Debug.Log("resize gen");
             }
             clear();
         }
 
-        //// Resize array if it is not empty and values of dimensions are different
+        // Resize array if it is not empty and values of dimensions are different
         if (hasChangedSize) {
-            Debug.Log("aaa");
+            Debug.Log("array resized in grid generation");
             ResizeMatrix(gridWidth, gridHeight, gridDepth);
         }
 
@@ -143,99 +154,59 @@ public class CellularAutomaton3D : MonoBehaviour
 
     // Create a new matrix with the desired size
     void ResizeMatrix(int newRows, int newColumns, int newDepth) {
-       
+       // Delete all instances of the matrix
         foreach (GameObject cell in cellsArray) {
             Destroy(cell);
         }
+        // Clear the array of prefabs
         Array.Clear(cellsArray, 0, cellsArray.Length);
+        // Create new matrix with new dimensions
         cellsArray = new GameObject[newRows, newColumns, newDepth];
+        // Clear the array of bools that map the alive or dead condition of the prefabs
         Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
+        // Create new matrix of bools with the new dimensions of the prefab's matrix
         cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
+        // Set bool to false because resizing has finished
         hasChangedSize = false;
+        Debug.Log("changed size");
     }
 
+    // Coroutine to create matrix of cubes with small breaks of time
     IEnumerator createGridBySteps() {
-        int itt = 0;
         for (int i = 0; i < gridWidth; i++) {
             for (int j = 0; j < gridHeight; j++) {
                 for (int k = 0; k < gridDepth; k++) {
                     if (canGenerateCell) {
-                        bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
-                        Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
-                        GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
-                        temp.name = "Instance_" + itt;
-                        // set cube state num
-                        temp.GetComponent<CubeCell>().setState(state);
-                        // set cube render to active true or false depending on random value
-                        temp.GetComponent<CubeCell>().setCube(randomValue);
-                        // parent instance to parent empty gameObject pos
-                        temp.transform.SetParent(transform);
-
-                        // Asign cell to a position in the matrix
-                        cellsArray[i, j, k] = temp;
-                        
+                        setRandomCubes(i, j, k);
                         // Create a little pause before drawing each individual cell on the matrix
                         if (m_isStepped) {
                             yield return new WaitForSeconds(0.02f);
                         }
-                        itt++;
                     }
                 }
             }
         }
-        // Copy the array values to a bool array to know if they are alive or dead
+        // Copy the array values of the random initial cubes to a bool array to know if they are alive or dead
         copyArray();
 
         while (canIterate) {
-            //if (canBreakWhile) {
-            //    canIterate = false;
-            //}
-            // Destroy and clear cells array for the next iteration
+            // Wait a determined number of seconds before changing the state of all the cubes
             yield return new WaitForSeconds(0.5f);
+            // Create a tridimensional model made out of cubes
             for (int i = 0; i < gridWidth; i++) {
                 for (int j = 0; j < gridHeight; j++) {
                     for (int k = 0; k < gridDepth; k++) {
                         // Check if the cell matrix is empty before creating a new one
                         if (canGenerateCell) {
                             if (isMoore) {
+                                // Check direct neighbors in all directions incluiding diagonals
                                 checkNeighborsMoore(i, j, k);
                             } else {
+                                // Check direct neighbors in all direction without incluiding diagonals
                                 checkNeighborsVonNeumann(i, j, k);
                             }
-
-                            // If the cell is alive returns true
-                            if (cellsArrayMap[i, j, k]) {
-                                // Check if rule is met for alive cells and asign color
-                                Debug.Log("Num survive: " + neighborsNumSurvive);
-                                cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumSurvive >= numSurvival) ? true : false);
-                            } else { // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
-                                // Update the state number
-                                int tempState = cellsArray[i, j, k].GetComponent<CubeCell>().getState() - 1;
-                                // Assign updated state nmber
-                                cellsArray[i, j, k].GetComponent<CubeCell>().setState(tempState);
-
-                                // check if state number has reached zero to turn off the mesh renderer
-                                if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() == 0) {
-                                    // set cube to false to turn if off
-                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube(false);
-                                }
-
-                                if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() < 0) {
-                                    // check if birth is possible with enough live cell neighbors
-                                    Debug.Log("Num birth: " + neighborsNumBirth);
-                                    cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumBirth >= numBirth) ? true : false);
-
-                                    // Restore state back to original value if cell is born again
-                                    if (cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive()) {
-                                        cellsArray[i, j, k].GetComponent<CubeCell>().setState(state);
-                                        Debug.LogWarning("born with: " + neighborsNumBirth);
-                                        //Debug.Log("Reborn with number of alive neighbors: " + (neighborsNumBirth) + " when needed: " + numBirth);
-                                        // Debug.Log("name: " + cellsArray[i, j, k].name);
-                                    } else {
-                                        Debug.LogWarning(cellsArray[i, j, k].name + " stayed dead with: " + neighborsNumBirth);
-                                    }
-                                } 
-                            }
+                            // Set color and visibility of cubes depending on rule and conditions - Num of neighbors depending on Moore or Von Neumann Model
+                            setCubes(i, j, k);
                             // Create a little pause before drawing each individual cell on the matrix
                             if (m_isStepped) {
                                 yield return new WaitForSeconds(0.02f);
@@ -244,17 +215,61 @@ public class CellularAutomaton3D : MonoBehaviour
                     }
                 }
             }
+            // Copy the array values to a bool array to know if they are alive or dead
             copyArray();
-
+            Debug.Log("iteration");
         }
     }
+
+    // Function that set the first 3x3 matrix of cubes in a random disposition
+    void setRandomCubes(int i, int j, int k) {
+        bool randomValue = UnityEngine.Random.Range(0, 100) < 50;
+        Vector3 cubePos = new Vector3(i - gridWidth * 0.5f, j - gridHeight * 0.5f, k - gridDepth * 0.5f);
+        GameObject temp = Instantiate(gridElement, cubePos, Quaternion.identity);
+        // set cube state num
+        temp.GetComponent<CubeCell>().setState(state);
+        // set cube render to active true or false depending on random value
+        temp.GetComponent<CubeCell>().setCube(randomValue);
+        // parent instance to parent empty gameObject pos
+        temp.transform.SetParent(transform);
+        // Asign cell to a position in the matrix
+        cellsArray[i, j, k] = temp;
+    }
+
+    // Function that sets the cubes depending on the number of alive neighbors
+    void setCubes(int i, int j, int k) {
+        // If the cell is alive returns true
+        if (cellsArrayMap[i, j, k]) {
+            // Check if rule is met for alive cells and asign color
+            cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumSurvive >= numSurvival) ? true : false);
+            return;
+        }
+        // Check if rule is met for dead cells and asign color. 26 posible neighbors - the number of live neighbors needed if you are dead
+        // Update the state number
+        int tempState = cellsArray[i, j, k].GetComponent<CubeCell>().getState() - 1;
+        // Assign updated state nmber
+        cellsArray[i, j, k].GetComponent<CubeCell>().setState(tempState);
+
+        // check if state number has reached zero to turn off the mesh renderer
+        if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() == 0) {
+            // set cube to false to turn if off
+            cellsArray[i, j, k].GetComponent<CubeCell>().setCube(false);
+        }
+        if (cellsArray[i, j, k].GetComponent<CubeCell>().getState() < 0) {
+            // check if birth is possible with enough live cell neighbors
+            cellsArray[i, j, k].GetComponent<CubeCell>().setCube((neighborsNumBirth >= numBirth) ? true : false);
+            // Restore state back to original value if cell is born again
+            if (cellsArray[i, j, k].GetComponent<CubeCell>().getIsAlive()) {
+                cellsArray[i, j, k].GetComponent<CubeCell>().setState(state);
+            } 
+        }
+    }
+
     void copyArray() {
-        //Debug.LogWarning("array copied");
         if (hasChangedSize) {
             Array.Clear(cellsArrayMap, 0, cellsArrayMap.Length);
             cellsArrayMap = new bool[cellsArray.GetLength(0), cellsArray.GetLength(1), cellsArray.GetLength(2)];
         }
-
         for (int i = 0; i < cellsArray.GetLength(0); i++) {
             for (int j = 0; j < cellsArray.GetLength(1); j++) {
                 for(int k = 0; k < cellsArray.GetLength(2); k++) {
@@ -263,13 +278,12 @@ public class CellularAutomaton3D : MonoBehaviour
             }
         }
     }
-
+    // Function to check the number of alive neighbors in accordance with Moore's Model
     void checkNeighborsMoore(int x, int y, int z) {
         // Reset values for neighborsNumSurvive and neighborsNumBirth for each new iteration
         // Values are set to -1 to ignore the addition of the cell considering itself
         neighborsNumSurvive = -1;
         neighborsNumBirth = -1;
-   
         // Go through the neighbors of the cell
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
@@ -290,42 +304,39 @@ public class CellularAutomaton3D : MonoBehaviour
                         if (cellsArrayMap[x + i, y + j, z + k]) {
                             neighborsNumBirth++;
                         }
-                       
                     }
                 }
             }
         }
     }
-
+    // Function to check the number of alive neighbors in accordance with Von Neumann's Model
     void checkNeighborsVonNeumann(int x, int y, int z){
+        // Reset values for neighborsNumSurvive and neighborsNumBirth for each new iteration
         neighborsNumSurvive = 0;
         neighborsNumBirth = 0;
-
+        // Define offset to check neighbors only in accordance to Von Neumann's Model
         int[] xOffSet = {-1, 1, 0, 0, 0, 0};
         int[] yOffSet = { 0, 0,-1, 1, 0, 0};
         int[] zOffSet = { 0, 0, 0, 0,-1, 1};
-
         for (int i = 0; i < xOffSet.Length; i++){
             int tempX = xOffSet[i];
             int tempY = yOffSet[i];
             int tempZ = zOffSet[i];
-
+            // Conditional to stay inside the bounds of the matrix
             if(x + tempX >= 0 && x + tempX < gridWidth &&
                y + tempY >= 0 && y + tempY < gridHeight &&
                z + tempZ >= 0 && z + tempZ < gridDepth){
                 // Check if cell is alive
                 if(cellsArrayMap[x, y, z]) {
                     // Check if neighbors are alive
-                    Debug.LogWarning("thas");
                     if (cellsArrayMap[x + tempX, y + tempY, z + tempZ]) {
-                        Debug.LogWarning("this");
                         neighborsNumSurvive++;
                         continue;
                     }
                 } 
+                // Check alive neighbors if cell is dead
                 if (cellsArrayMap[x + tempX, y + tempY, z + tempZ]) {
                     neighborsNumBirth++;
-                    Debug.LogWarning("dead cell with num of alive neigh: " + neighborsNumBirth);
                 }
             }
         }
